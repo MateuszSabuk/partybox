@@ -105,6 +105,9 @@ run apt-get update -qq
 run apt-get install -y -qq ca-certificates curl rsync iw rfkill
 if [ "$KIOSK" = 1 ]; then
   run apt-get install -y -qq chromium || run apt-get install -y -qq chromium-browser
+  # Colour emoji font for the TV browser. The built-in UI uses SVG icons and doesn't need it, but a game
+  # that prints emoji would otherwise show empty boxes (missing glyph) or flat outline symbols.
+  run apt-get install -y -qq fonts-noto-color-emoji
 fi
 node_major=0
 have node && node_major=$(node -p 'process.versions.node.split(".")[0]')

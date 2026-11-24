@@ -2,7 +2,8 @@
 //
 // Contract:  export function mount(root, api) -> { message(d, isSnapshot), unmount() }
 //   root  – an empty, full-screen <div> you own
-//   api   – { send(d), me:{id,name}, players(), orientation('portrait'|'landscape'|'any') }
+//   api   – { send(d), me:{id,name}, players(), orientation('portrait'|'landscape'|'any'), latency(), ui }
+//           api.ui = { avatar(player,size), medal(rank,size), icons, esc }  – use these instead of emoji
 export function mount(root, api) {
   root.innerHTML = `
     <style>
@@ -50,7 +51,7 @@ export function mount(root, api) {
     } else {
       const r = result;
       view.innerHTML = r
-        ? `<h1>${['🥇', '🥈', '🥉'][r.rank - 1] || '#' + r.rank}</h1><div class="big">${r.taps}</div><small>taps · ${r.points != null ? '+' + r.points + ' points' : ''}</small>`
+        ? `<h1>${api.ui.medal(r.rank, '5.5rem')}</h1><div class="big">${r.taps}</div><small>taps · ${r.points != null ? '+' + r.points + ' points' : ''}</small>`
         : `<h1>Round over</h1>`;
     }
   }

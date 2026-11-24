@@ -18,13 +18,17 @@
   .qr .n{font-size:5vh;color:var(--accent);font-weight:800;margin-right:.5vw}
   .right{display:flex;flex-direction:column;gap:2vh;min-width:0}
   .right h1{font-size:6vh}
-  .pl{display:flex;flex-wrap:wrap;gap:1vh}
-  .pl .chip{font-size:2.6vh;padding:.8vh 1.8vh}
+  .brand{display:flex;align-items:center;gap:1.4vh}
+  .brand .logo{width:7vh;height:7vh;font-size:7vh}
+  .pl{display:flex;flex-wrap:wrap;gap:2vh 1.6vw}
+  .tile{display:flex;flex-direction:column;align-items:center;gap:.8vh;width:12vh;text-align:center;font-size:2.3vh;line-height:1.15}
+  .tile b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tile small{color:var(--muted);font-size:1.9vh;min-height:1.2em}
+  .tile .av.off{animation:blink 1.4s infinite}
   .gl{display:grid;grid-template-columns:repeat(auto-fill,minmax(26vw,1fr));gap:1.5vh}
   .gl .game{font-size:2.4vh;cursor:pointer}
-  .gl .game .ico{font-size:5vh}
   #msg{font-size:2.6vh;color:var(--muted)}
-  #stop{position:fixed;right:1vw;top:1vh;z-index:20;opacity:0;transition:opacity .3s;background:#0009}
+  #stop{position:fixed;right:1vw;bottom:1vh;z-index:20;opacity:0;transition:opacity .3s;background:#0009}
   body:hover #stop{opacity:.9}
   #conn{position:fixed;left:50%;transform:translateX(-50%);top:1vh;z-index:20;background:var(--warn);color:#111;padding:.5vh 2vh;border-radius:9vh;font-weight:700;display:none}
   #conn.on{display:block}
@@ -33,7 +37,7 @@
 <body>
 <div id="app">
   <div id="conn">Reconnecting to server…</div>
-  <button id="stop" hidden>✕ Back to lobby</button>
+  <button id="stop" hidden>&times; Back to lobby</button>
 
   <section id="lobby">
     <div class="qrs">
@@ -42,7 +46,7 @@
       <div class="muted" id="hostHint" style="font-size:1.8vh"></div>
     </div>
     <div class="right">
-      <h1>🎉 PartyBox <span class="muted" id="count" style="font-size:3vh"></span></h1>
+      <h1 class="brand"><span class="logo" data-icon="logo"></span>PartyBox <span class="muted" id="count" style="font-size:3vh"></span></h1>
       <div class="pl" id="players"></div>
       <div id="msg"></div>
       <div class="gl" id="games"></div>

@@ -1,7 +1,9 @@
 // Phone shell: join -> lobby -> (any game) with ONE token and ONE socket for all of it.
 import { armFullscreenOnFirstTouch, canFullscreen, enterFullscreen, isIOS, isStandalone, setOrientation } from './fs.js';
 import { createGameHost } from './gameloader.js';
+import { cropPhoto } from './cropper.js';
 import { createLink } from './link.js';
+import { avatar, esc, gameIcon, icons, ui } from './ui.js';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -50,6 +52,7 @@ const game = createGameHost({
     players: () => state?.players || [],
     orientation: setOrientation,
     latency: () => link.latency,
+    ui,
   }),
 });
 
@@ -92,14 +95,14 @@ const link = createLink({
 });
 
 // ---------- rendering ----------
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-
 function render() {
   if (!state || !me) return;
   const mine = state.players.find((p) => p.id === me.id);
   if (mine) me.name = mine.name;
 
   if (state.phase === 'game' && state.active) {
+    window.__cropCancel?.();
+    $('avSheet').hidden = true;
     for (const v of views) $('v-' + v).classList.remove('on');
     game.open(state.active.id);
     game.mod?.playersChanged?.(state.players);
@@ -108,8 +111,9 @@ function render() {
   show('lobby');
   $('meName').textContent = me.name;
   $('meScore').textContent = (mine?.score ?? 0) + ' pts';
+  if (mine) $('meAv').innerHTML = avatar(mine, '4.4rem') + `<span class="badge">${icons.camera}</span>`;
   $('chips').innerHTML = state.players
-    .map((p) => `<span class="chip ${p.on ? '' : 'off'} ${p.id === me.id ? 'me' : ''}"><i></i>${esc(p.name)}${p.score ? ' · ' + p.score : ''}</span>`)
+    .map((p) => `<span class="chip ${p.on ? '' : 'off'} ${p.id === me.id ? 'me' : ''}">${avatar(p, '1.6rem')}${esc(p.name)}${p.score ? ' · ' + p.score : ''}</span>`)
     .join('');
 
   const isLeader = state.leader === me.id;
@@ -119,7 +123,7 @@ function render() {
     ? state.games
         .map(
           (g) => `<button class="game ${g.id === state.selected ? 'sel' : ''}" data-id="${g.id}" ${isLeader ? '' : 'disabled style="opacity:1"'}>
-            <span class="ico">${esc(g.icon)}</span><span><b>${esc(g.name)}</b><small>${esc(g.description)}</small></span></button>`,
+            ${gameIcon(g, '2.6rem')}<span><b>${esc(g.name)}</b><small>${esc(g.description)}</small></span></button>`,
         )
         .join('')
     : '<div class="hint">No games installed. Drop a folder into games/.</div>';
@@ -168,6 +172,55 @@ $('joinForm').addEventListener('submit', async (e) => {
     $('joinErr').textContent = 'Cannot reach the party. Are you on the PartyBox Wi-Fi?';
   }
 });
+
+// ---------- avatar: choose -> frame -> upload ----------
+const toastEl = $('toast');
+let toastTimer;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('on'), 3200);
+}
+$('meAv').addEventListener('click', () => {
+  $('avRemove').hidden = !state?.players.find((p) => p.id === me?.id)?.av;
+  $('avSheet').hidden = false;
+});
+$('avClose').addEventListener('click', () => ($('avSheet').hidden = true));
+$('avSheet').addEventListener('click', (e) => e.target === $('avSheet') && ($('avSheet').hidden = true));
+
+async function avatarRequest(method, body) {
+  const r = await fetch('/api/avatar', { method, headers: { 'x-pb-token': getToken() || '', ...(body ? { 'content-type': 'image/jpeg' } : {}) }, body });
+  if (r.status === 401) throw new Error('Session expired – reload the page.');
+  if (r.status === 429) throw new Error('Slow down – try again in a second.');
+  if (!r.ok) throw new Error('Could not save the photo.');
+}
+
+$('file').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  e.target.value = ''; // allow picking the same file again
+  $('avSheet').hidden = true;
+  if (!f) return;
+  try {
+    const blob = await cropPhoto(f);
+    if (!blob) return;
+    await avatarRequest('POST', blob);
+    toast('Photo saved');
+  } catch (err) {
+    toast(err.message === 'unreadable' ? "Can't open that photo – try a different one." : err.message);
+  }
+});
+$('avRemove').addEventListener('click', async () => {
+  $('avSheet').hidden = true;
+  try {
+    await avatarRequest('DELETE');
+    toast('Photo removed');
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+for (const el of document.querySelectorAll('[data-icon]')) el.innerHTML = icons[el.dataset.icon] || '';
 
 // ---------- boot ----------
 $('name').value = store.get('pb_name') || '';

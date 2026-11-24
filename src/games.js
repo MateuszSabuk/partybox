@@ -45,11 +45,13 @@ export class GameRegistry {
       for (const f of ['server.js', 'client/player.js', 'client/host.js']) {
         if (!fs.existsSync(path.join(base, f))) throw new Error(`missing ${f}`);
       }
+      // `icon` = file name of an .svg/.png/.webp inside client/ (no emoji: many TV browsers have no emoji font)
+      const icon = typeof m.icon === 'string' && /^[\w.-]+\.(svg|png|webp)$/i.test(m.icon) && fs.existsSync(path.join(base, 'client', m.icon)) ? m.icon : null;
       return {
         id,
         name: String(m.name || id),
         description: String(m.description || ''),
-        icon: String(m.icon || '🎮'),
+        iconUrl: icon ? `/games/${id}/client/${icon}` : null,
         minPlayers: Math.max(1, Number(m.minPlayers) || 1),
         maxPlayers: Number(m.maxPlayers) || null,
         minutes: Number(m.minutes) || null,

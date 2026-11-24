@@ -33,6 +33,24 @@ const MIME = {
   '.woff2': 'font/woff2',
 };
 
+const AVATAR_MAX_BYTES = 64 * 1024;
+const AVATAR_MAX_DIM = 512;
+
+/** Width/height from a JPEG's SOF marker, or null if it isn't a well-formed JPEG. Cheap; no decoding. */
+function jpegSize(b) {
+  if (b.length < 4 || b[0] !== 0xff || b[1] !== 0xd8 || b[2] !== 0xff) return null;
+  let i = 2;
+  while (i + 9 < b.length) {
+    if (b[i] !== 0xff) return null;
+    const m = b[i + 1];
+    if (m === 0xff) { i++; continue; } // fill byte
+    if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return { h: b.readUInt16BE(i + 5), w: b.readUInt16BE(i + 7) };
+    if (m === 0xd9 || m === 0xda) return null; // end / start of scan before any frame header
+    i += 2 + b.readUInt16BE(i + 2);
+  }
+  return null;
+}
+
 const PROBES = new Set(['/generate_204', '/gen_204', '/hotspot-detect.html', '/library/test/success.html', '/connecttest.txt', '/ncsi.txt']);
 const wifiEscape = (s) => String(s).replace(/([\\;,:"])/g, '\\$1');
 
@@ -129,6 +147,51 @@ export async function start(config = loadConfig()) {
         json(res, 200, r, { 'set-cookie': `pb_token=${r.token}; Path=/; Max-Age=${config.players.sessionTtlHours * 3600}; SameSite=Lax${secure}` });
       });
       return;
+    }
+
+    // ----- avatars -----
+    const token = req.headers['x-pb-token'] || /(?:^|;\s*)pb_token=([0-9a-f]{32})/.exec(req.headers.cookie || '')?.[1];
+    if (p === '/api/avatar' && req.method === 'POST') {
+      const chunks = [];
+      let size = 0;
+      let tooBig = false;
+      req.on('data', (c) => {
+        size += c.length;
+        if (size > AVATAR_MAX_BYTES) tooBig = true;
+        else chunks.push(c);
+      });
+      req.on('end', () => {
+        if (tooBig) return json(res, 413, { error: 'too-large' });
+        const buf = Buffer.concat(chunks);
+        const dim = jpegSize(buf);
+        if (!dim) return json(res, 415, { error: 'not-jpeg' });
+        if (dim.w > AVATAR_MAX_DIM || dim.h > AVATAR_MAX_DIM || !dim.w || !dim.h) return json(res, 422, { error: 'dimensions' });
+        const r = hub.setAvatar(token, buf);
+        if (r.error === 'auth') return json(res, 401, r);
+        if (r.error === 'rate') return json(res, 429, r);
+        json(res, 200, r);
+      });
+      return;
+    }
+    if (p === '/api/avatar' && req.method === 'DELETE') {
+      const r = hub.clearAvatar(token);
+      return json(res, r.error ? 401 : 200, r);
+    }
+    const av = /^\/avatar\/(p\d+)\.jpg$/.exec(p);
+    if (av) {
+      const player = sessions.getById(av[1]);
+      if (!player || !player.av) return notFound(res);
+      return fs.readFile(sessions.avatarPath(av[1]), (err, data) => {
+        if (err) return notFound(res);
+        res.writeHead(200, {
+          'content-type': 'image/jpeg',
+          'content-length': data.length,
+          'cache-control': 'public, max-age=31536000, immutable', // URL carries ?v=<revision>
+          'x-content-type-options': 'nosniff',
+          'content-security-policy': "default-src 'none'",
+        });
+        res.end(data);
+      });
     }
 
     // game client assets: /games/<id>/client/<file>

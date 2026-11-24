@@ -1,16 +1,16 @@
 // Host (TV) screen. Open http://localhost:<port>/host in kiosk mode on the Pi.
 import { createGameHost } from './gameloader.js';
 import { createLink } from './link.js';
+import { avatar, esc, gameIcon, icons, ui } from './ui.js';
 
 const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const pin = new URLSearchParams(location.search).get('pin') || undefined;
 let state = null;
 
 const game = createGameHost({
   role: 'host',
   root: $('game'),
-  makeApi: () => ({ send: (d) => link.send({ t: 'game', d }), players: () => state?.players || [] }),
+  makeApi: () => ({ send: (d) => link.send({ t: 'game', d }), players: () => state?.players || [], ui }),
 });
 
 const link = createLink({
@@ -49,7 +49,7 @@ function render() {
   const on = state.players.filter((p) => p.on).length;
   $('count').textContent = `${on}/${state.max}`;
   $('players').innerHTML = state.players.length
-    ? state.players.map((p) => `<span class="chip ${p.on ? '' : 'off'}"><i></i>${esc(p.name)}${p.score ? ' · ' + p.score : ''}</span>`).join('')
+    ? state.players.map((p) => `<div class="tile">${avatar(p, '9vh')}<b>${esc(p.name)}</b><small>${p.score ? p.score + ' pts' : ''}</small></div>`).join('')
     : '<span class="muted" style="font-size:3vh">Scan the codes to join…</span>';
 
   const leader = state.players.find((p) => p.id === state.leader);
@@ -59,7 +59,7 @@ function render() {
       ? `${leader.name} is the leader and picks the game on their phone.`
       : '';
   $('games').innerHTML = state.games
-    .map((g) => `<div class="game ${g.id === state.selected ? 'sel' : ''}" data-id="${g.id}"><span class="ico">${esc(g.icon)}</span><span><b>${esc(g.name)}</b><small>${esc(g.description)}</small></span></div>`)
+    .map((g) => `<div class="game ${g.id === state.selected ? 'sel' : ''}" data-id="${g.id}">${gameIcon(g, '6vh')}<span><b>${esc(g.name)}</b><small>${esc(g.description)}</small></span></div>`)
     .join('');
 }
 
@@ -75,4 +75,5 @@ addEventListener('keydown', (e) => {
   if (e.key === 'Escape') link.send({ t: 'lobby:stop' });
   if (e.key === 'Enter' && state?.canStart) link.send({ t: 'lobby:start' });
 });
+for (const el of document.querySelectorAll('[data-icon]')) el.innerHTML = icons[el.dataset.icon] || '';
 link.resume();

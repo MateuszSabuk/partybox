@@ -2,7 +2,7 @@
   "id": "tap-race",
   "name": "Tap Race",
   "description": "Mock game: tap your phone as fast as you can for 10 seconds.",
-  "icon": "👆",
+  "icon": "icon.svg",
   "minPlayers": 1,
   "maxPlayers": null,
   "minutes": 1

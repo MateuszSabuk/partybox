@@ -39,3 +39,19 @@ h1,h2{margin:0}
 #game{position:absolute;inset:0;display:none}
 #game.on{display:block}
 .err{color:#ff7d7d;min-height:1.4em}
+
+/* ---- icons, avatars, medals (shared by phone, TV and games) ---- */
+.logo svg{width:1em;height:1em;display:block;margin:auto}
+.gicon{display:inline-block;flex:none;width:var(--s,2.4rem);height:var(--s,2.4rem);border-radius:22%;overflow:hidden}
+.gicon svg,.gicon img{width:100%;height:100%;display:block}
+.av{display:inline-block;flex:none;position:relative;width:var(--s,3rem);height:var(--s,3rem);border-radius:50%;overflow:hidden;
+  background:var(--ring,#667);box-shadow:0 0 0 max(2px,calc(var(--s,3rem)*.055)) var(--ring,#667);margin:max(2px,calc(var(--s,3rem)*.055))}
+.av img,.av svg{width:100%;height:100%;display:block;object-fit:cover}
+.av.off{opacity:.45;filter:saturate(.5)}
+.medal{display:inline-grid;place-items:center;flex:none;width:var(--s,2rem);height:var(--s,2rem);border-radius:50%;
+  font-weight:800;font-size:calc(var(--s,2rem)*.55);color:#2a2000;background:#5a6090;
+  box-shadow:inset 0 -.12em 0 #0003,0 0 0 .08em #fff3}
+.medal.m1{background:radial-gradient(circle at 35% 30%,#fff2a8,#f5b400)}
+.medal.m2{background:radial-gradient(circle at 35% 30%,#fff,#aeb6c9)}
+.medal.m3{background:radial-gradient(circle at 35% 30%,#ffd2a1,#c27a3a)}
+.medal.m0{color:#fff;background:#4a4f7c}

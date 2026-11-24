@@ -61,7 +61,26 @@ export class Hub {
   }
 
   publicPlayer(p) {
-    return { id: p.id, name: p.name, score: p.score, on: p.connected, away: p.away };
+    return { id: p.id, name: p.name, score: p.score, on: p.connected, away: p.away, color: p.color, av: p.av };
+  }
+
+  // ---------- avatars (called by the HTTP layer) ----------
+  /** @returns {{ok:true}|{error:string}} */
+  setAvatar(token, buf) {
+    const p = this.sessions.getByToken(token);
+    if (!p) return { error: 'auth' };
+    if (Date.now() - p.lastAvatarAt < 1000) return { error: 'rate' };
+    this.sessions.setAvatar(p, buf);
+    this.broadcastState();
+    return { ok: true };
+  }
+
+  clearAvatar(token) {
+    const p = this.sessions.getByToken(token);
+    if (!p) return { error: 'auth' };
+    this.sessions.clearAvatar(p);
+    this.broadcastState();
+    return { ok: true };
   }
 
   leaderId() {

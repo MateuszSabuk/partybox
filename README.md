@@ -6,7 +6,8 @@ the TV shows two QR codes (Wi-Fi + game URL), phones are the controllers.
 ```
 npm install
 npm start                      # http://localhost:8080/host  = TV screen,  http://<ip>:8080/ = phones
-npm test                       # 23-check simulation: 12 phones, reconnect, scores, persistence
+npm test                       # 46-check simulation: 12 phones, reconnect, scores, persistence, avatars
+npm run test:browser           # real Chromium: join, photo framing, avatars on TV, full game, emoji scan (needs Playwright)
 ```
 
 ## How it fits together
@@ -18,6 +19,11 @@ npm test                       # 23-check simulation: 12 phones, reconnect, scor
 - **Leader.** The first connected player picks and starts games from their phone (`lobby.leaderCanControl`).
   The host screen can always do it (click a game twice, or Enter / Esc).
 - **Scores** live in the session, so they carry across games.
+- **Avatars.** Every player gets a personal colour (evenly spread hues) and a silhouette. In the lobby they can tap
+  their picture any time to choose or take a photo, drag/pinch it inside a circular frame, and save; or remove it again.
+  The phone sends a ~10 KB 192x192 JPEG to `POST /api/avatar` (token in header or cookie). The server accepts only JPEG
+  up to 64 KB and 512x512 (checked from the header, nothing is decoded), rate-limits to 1/s, stores it in
+  `data/avatars/`, and serves it as `/avatar/<id>.jpg?v=<revision>`. It is deleted when the player is kicked/reset.
 
 ## Adding a game (modular)
 
@@ -25,7 +31,8 @@ Create `games/<id>/` — it appears in the lobby on the next lobby refresh, no o
 
 ```
 games/my-game/
-  game.json          { "id": "my-game", "name": "...", "description": "...", "icon": "🎲", "minPlayers": 2, "maxPlayers": 12 }
+  game.json          { "id": "my-game", "name": "...", "description": "...", "icon": "icon.svg", "minPlayers": 2, "maxPlayers": 12 }
+  client/icon.svg    the lobby icon ("icon" = file name in client/, .svg/.png/.webp; omitted -> generic pad icon)
   server.js          export default function create(ctx) { return { start, snapshot, hostSnapshot, onMessage, ... } }
   client/player.js   export function mount(root, api) { return { message(d, isSnapshot), unmount() } }
   client/host.js     export function mount(root, api) { return { message(d, isSnapshot), unmount() } }
@@ -44,7 +51,10 @@ games/my-game/
 Hooks (all optional): `start`, `snapshot(player)`, `hostSnapshot()`, `onMessage(player,d)`, `onHostMessage(d)`,
 `onPlayerJoin/Disconnect/Reconnect/Away(player)`, `destroy`.
 **`snapshot()` must describe the complete current state** – it is what makes mid-game reconnects work.
-Client `api`: `send(d)`, `me`, `players()`, `orientation('portrait'|'landscape'|'any')`, `latency()`.
+Client `api`: `send(d)`, `me`, `players()`, `orientation('portrait'|'landscape'|'any')`, `latency()`, and
+`ui` = `{ avatar(player,size), medal(rank,size), gameIcon, icons, esc }`.
+**Don't use emoji in games**: many TV/Linux browsers have no emoji font (you get empty boxes or flat outline
+symbols). Use `api.ui.avatar()` / `api.ui.medal()` / your own SVG. `setup.sh` also installs `fonts-noto-color-emoji` as a safety net.
 
 ## Config reference
 
