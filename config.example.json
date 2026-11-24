@@ -1,0 +1,21 @@
+{
+  "wifi": { "ssid": "PartyBox", "password": "letsplay123", "security": "WPA" },
+  "network": { "ip": "192.168.4.1" },
+  "server": {
+    "httpPort": 80,
+    "httpsPort": 443,
+    "domain": "party.example.com",
+    "tls": {
+      "enabled": true,
+      "cert": "/etc/partybox/fullchain.pem",
+      "key": "/etc/partybox/privkey.pem",
+      "redirectHttp": true
+    }
+  },
+  "players": { "max": 12, "graceSeconds": 90 },
+  "lobby": { "leaderCanControl": true, "hostPin": "" },
+  "games": {
+    "enabled": [],
+    "config": { "tap-race": { "durationSeconds": 10 } }
+  }
+}
